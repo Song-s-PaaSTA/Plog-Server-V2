@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trash-service-deployment
+  labels:
+    env: development
+    tier: backend
+    app: trash-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      env: development
+      tier: backend
+      app: trash-service
+  template:
+    metadata:
+      labels:
+        env: development
+        tier: backend
+        app: trash-service
+    spec:
+      containers:
+        - name: trash-service
+          image: contest20-container-registry.kr.ncr.ntruss.com/trash-service:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          env:
+            - name: TZ
+              valueFrom:
+                configMapKeyRef:
+                  name: config
+                  key: TZ
+
+            - name: SERVER_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: config
+                  key: SERVER_PORT
+

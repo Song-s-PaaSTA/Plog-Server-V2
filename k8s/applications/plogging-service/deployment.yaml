@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: plogging-service-deployment
+  labels:
+    env: development
+    tier: backend
+    app: plogging-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      env: development
+      tier: backend
+      app: plogging-service
+  template:
+    metadata:
+      labels:
+        env: development
+        tier: backend
+        app: plogging-service
+    spec:
+      containers:
+        - name: plogging-service
+          image: contest20-container-registry.kr.ncr.ntruss.com/plogging-service:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          env:
+            - name: TZ
+              valueFrom:
+                configMapKeyRef:
+                  name: config
+                  key: TZ
+
+            - name: SERVER_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: config
+                  key: SERVER_PORT
+
+
+#          readinessProbe:
+#            httpGet:
+#              path: /actuator/health
+#              port: 8080
+#            initialDelaySeconds: 10
+#            periodSeconds: 5
+#            successThreshold: 1
+#            failureThreshold: 3
