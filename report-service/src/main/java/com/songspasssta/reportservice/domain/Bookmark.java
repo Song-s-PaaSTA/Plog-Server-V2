@@ -18,6 +18,9 @@ import static lombok.AccessLevel.PROTECTED;
 @NoArgsConstructor(access = PROTECTED)
 @SQLDelete(sql = "UPDATE bookmark SET status = 'DELETED' where id = ?")
 @SQLRestriction("status = 'ACTIVE'")
+@Table(name = "bookmark", indexes = {
+        @Index(name = "idx_bookmark_reportId", columnList = "report_id")
+})
 public class Bookmark extends BaseEntity {
 
     public static final String STATUS_DELETED = "DELETED";
