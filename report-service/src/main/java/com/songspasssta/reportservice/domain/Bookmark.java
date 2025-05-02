@@ -37,10 +37,17 @@ public class Bookmark extends BaseEntity {
     @JoinColumn(name = "report_id", nullable = false)
     private Report report;
 
-    public Bookmark(Long memberId, Report report, Boolean bookmarked) {
-        this.memberId = memberId;
+    public static Bookmark createBookmark(Long memberId, Report report, Boolean bookmarked) {
+        Bookmark bookmark = new Bookmark();
+        bookmark.memberId = memberId;
+        bookmark.bookmarked = bookmarked;
+        bookmark.addReport(report);
+        return bookmark;
+    }
+
+    private void addReport(Report report) {
         this.report = report;
-        this.bookmarked = bookmarked;
+        report.getBookmarks().add(this);
     }
 
     public void toggleBookmarkStatus(Boolean bookmarked) {

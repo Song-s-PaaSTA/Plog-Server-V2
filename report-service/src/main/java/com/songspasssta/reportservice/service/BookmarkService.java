@@ -10,10 +10,14 @@ import com.songspasssta.reportservice.dto.response.BookmarkReports;
 import com.songspasssta.reportservice.dto.response.BookmarkedReportsResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+
+import static com.songspasssta.reportservice.domain.Bookmark.createBookmark;
 
 /**
  * 북마크 조회, 토글 서비스
@@ -68,7 +72,7 @@ public class BookmarkService {
      * 북마크 엔티티 생성
      */
     private String createNewBookmark(Long memberId, Report report, Long reportId) {
-        Bookmark newBookmark = new Bookmark(memberId, report, true);
+        Bookmark newBookmark = createBookmark(memberId, report, true);
         bookmarkRepository.save(newBookmark);
         return "ID가 " + reportId + "인 신고글의 북마크가 등록되었습니다.";
     }

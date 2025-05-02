@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
+import static com.songspasssta.reportservice.domain.Report.createReport;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -60,14 +62,7 @@ public class ReportService {
                 .orElse(ReportType.NOT_STARTED);
 
         // Report 엔티티 생성
-        Report report = Report.builder()
-                .memberId(memberId)
-                .reportImgUrl(imageUrl)
-                .reportDesc(requestDto.getReportDesc())
-                .roadAddr(requestDto.getRoadAddr())
-                .regionType(regionType)
-                .reportType(reportType)
-                .build();
+        Report report = createReport(memberId, imageUrl, requestDto.getReportDesc(), reportType, requestDto.getRoadAddr(), regionType);
 
         // 신고글 저장
         reportRepository.save(report);
