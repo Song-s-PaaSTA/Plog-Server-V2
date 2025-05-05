@@ -10,7 +10,8 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
-public interface ReportRepository extends JpaRepository<Report, Long>, JpaSpecificationExecutor<Report> {
+public interface ReportRepository extends JpaRepository<Report, Long>,
+        ReportRepositoryCustom {
     @Query("SELECT r FROM Report r WHERE r.memberId = :memberId")
     List<Report> findAllByMemberId(@Param("memberId") Long memberId);
 

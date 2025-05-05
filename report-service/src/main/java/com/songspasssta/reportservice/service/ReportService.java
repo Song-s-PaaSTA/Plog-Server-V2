@@ -13,9 +13,12 @@ import com.songspasssta.reportservice.dto.request.ReportSaveRequest;
 import com.songspasssta.reportservice.dto.request.ReportUpdateRequest;
 import com.songspasssta.reportservice.dto.response.MyReportListResponse;
 import com.songspasssta.reportservice.dto.response.ReportDetailResponse;
+import com.songspasssta.reportservice.dto.response.ReportList;
 import com.songspasssta.reportservice.dto.response.ReportListResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,7 +42,6 @@ public class ReportService {
     private final BookmarkRepository bookmarkRepository;
     private final FileService fileService;
     private final RewardService rewardService;
-    private final ReportQueryService reportQueryService;
 
     /**
      * 신고글 저장
@@ -76,23 +78,18 @@ public class ReportService {
     /**
      * 신고글 리스트
      */
-    public ReportListResponse findAllReports(Long memberId, List<String> regions, String sort, List<String> statuses) {
-
-        // 지역 찾기
+    public ReportListResponse findAllReports(Long memberId, List<String> regions, String sort, List<String> statuses, Pageable pageable) {
+        // 지역 영문명 찾기
         List<RegionType> regionTypes = Optional.ofNullable(regions).orElse(List.of()).stream()
                 .map(RegionType::fromKoreanName)
                 .filter(Objects::nonNull)
                 .toList();
 
-        // 신고글 상태 찾기
+        // 신고글 상태 영문명 찾기
         List<ReportType> reportTypes = Optional.ofNullable(statuses).orElse(List.of()).stream()
                 .map(ReportType::fromKoreanDescription)
                 .filter(Objects::nonNull)
                 .toList();
-
-        // 필터링이 없는 경우 (즉, 모든 값을 조회해야 하는 경우)
-        boolean noRegionFilter = regions == null || regions.isEmpty();
-        boolean noStatusFilter = statuses == null || statuses.isEmpty();
 
         // sort 값 검증 (정렬 기준이 잘못된 경우 빈 리스트 반환)
         if (sort != null && !List.of("date", "popularity").contains(sort)) {
@@ -100,30 +97,19 @@ public class ReportService {
             return new ReportListResponse(List.of());
         }
 
-        // 필터링 값이 있는데도 잘못된 경우 (즉, 잘못된 값이 있으면 빈 리스트 반환)
-        if ((!noRegionFilter && regions.size() != regionTypes.size()) ||
-                (!noStatusFilter && statuses.size() != reportTypes.size())) {
+        // 필터링 값이 있는데도 잘못된 경우 (즉, 잘못된 값이 하나라도 있으면 빈 리스트 반환)
+        if (regions != null && regions.size() != regionTypes.size() ||
+                (statuses != null && statuses.size() != reportTypes.size())) {
             log.warn("잘못된 필터값이 입력됨. 조회 결과 없음.");
             return new ReportListResponse(List.of());
         }
 
-        // 특정 조건에 맞는 신고글 정렬하기
-        Specification<Report> specification = reportQueryService.buildReportSpecification(regionTypes, reportTypes, sort);
-        List<Report> reports = reportRepository.findAll(specification);
+        Page<ReportList> reports = reportRepository
+                .findReportsWithFilter(memberId, regionTypes, reportTypes, sort, pageable);
 
-        log.info("신고글 리스트 조회 완료. 조회된 신고글 수: {}", reports.size());
-        List<ReportListResponse.ReportList> reportDtos = reports.stream()
-                .map(report -> new ReportListResponse.ReportList(
-                        report.getId(),
-                        report.getReportImgUrl(),
-                        report.getReportType().getKoreanDescription(),
-                        report.getRoadAddr(),
-                        report.getBookmarks().size(),
-                        bookmarkRepository.existsByReportIdAndMemberId(report.getId(), memberId)
-                ))
-                .toList();
+        log.info("신고글 리스트 조회 완료. 조회된 신고글 수: {}", reports.getSize());
 
-        return new ReportListResponse(reportDtos);
+        return new ReportListResponse(reports.getContent());
     }
 
     /**
