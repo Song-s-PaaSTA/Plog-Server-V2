@@ -140,7 +140,7 @@ public class ReportService {
      * 회원이 신고글에 북마크를 했는지 여부
      */
     private boolean checkIfBookmarkedByMember(Long reportId, Long memberId) {
-        return bookmarkRepository.existsByReportIdAndMemberId(reportId, memberId);
+        return bookmarkRepository.existsByReportIdAndMemberIdAndBookmarkedTrue(reportId, memberId);
     }
 
     /**
