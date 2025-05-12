@@ -57,6 +57,18 @@ public class Report extends BaseEntity {
     @OneToMany(mappedBy = "report", orphanRemoval = true, cascade = CascadeType.ALL)
     private List<Bookmark> bookmarks = new ArrayList<>();
 
+    public static Report createReport(Long memberId, String reportImgUrl, String reportDesc,
+                                      ReportType reportType, String roadAddr, RegionType regionType) {
+        return Report.builder()
+                .memberId(memberId)
+                .reportImgUrl(reportImgUrl)
+                .reportDesc(reportDesc)
+                .reportType(reportType)
+                .roadAddr(roadAddr)
+                .regionType(regionType)
+                .build();
+    }
+
     public void updateDetails(String reportDesc, ReportType reportType, String reportImgUrl) {
         this.reportDesc = reportDesc;
         this.reportType = reportType;

@@ -9,6 +9,7 @@ import com.songspasssta.reportservice.dto.response.ReportListResponse;
 import com.songspasssta.reportservice.service.ReportService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -46,8 +47,9 @@ public class ReportApiController {
             @RequestHeader(GATEWAY_AUTH_HEADER) final Long memberId,
             @RequestParam(value = "region", required = false) List<String> regions,
             @RequestParam(value = "sort", required = false) String sort,
-            @RequestParam(value = "status", required = false) List<String> statuses){
-        ReportListResponse response = reportService.findAllReports(memberId, regions, sort, statuses);
+            @RequestParam(value = "status", required = false) List<String> statuses,
+            Pageable pageable) {
+        ReportListResponse response = reportService.findAllReports(memberId, regions, sort, statuses, pageable);
         return ResponseEntity.ok().body(SuccessResponse.of(response));
     }
 

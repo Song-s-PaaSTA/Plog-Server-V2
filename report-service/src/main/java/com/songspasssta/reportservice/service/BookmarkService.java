@@ -6,13 +6,18 @@ import com.songspasssta.reportservice.domain.Bookmark;
 import com.songspasssta.reportservice.domain.Report;
 import com.songspasssta.reportservice.domain.repository.BookmarkRepository;
 import com.songspasssta.reportservice.domain.repository.ReportRepository;
+import com.songspasssta.reportservice.dto.response.BookmarkReports;
 import com.songspasssta.reportservice.dto.response.BookmarkedReportsResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+
+import static com.songspasssta.reportservice.domain.Bookmark.createBookmark;
 
 /**
  * 북마크 조회, 토글 서비스
@@ -29,27 +34,12 @@ public class BookmarkService {
      * 특정 사용자가 북마크한 신고글 목록 조회
      */
     public BookmarkedReportsResponse findMyBookmarks(Long memberId) {
-        List<BookmarkedReportsResponse.BookmarkReports> bookmarks = bookmarkRepository
-                .findAllByMemberIdAndBookmarked(memberId)
-                .stream()
-                .map(this::convertToBookmarkReports)
-                .toList();
+        List<BookmarkReports> bookmarks = bookmarkRepository.findAllByMemberIdAndBookmarked(memberId);
 
-        log.debug("북마크 조회 - MemberId: {}, 북마크 개수: {}", memberId, bookmarks.size());
+        log.info("북마크 조회 - MemberId: {}, 북마크 개수: {}", memberId, bookmarks.size());
 
         return new BookmarkedReportsResponse(bookmarks);
     }
-
-    private BookmarkedReportsResponse.BookmarkReports convertToBookmarkReports(Bookmark bookmark) {
-        return new BookmarkedReportsResponse.BookmarkReports(
-                bookmark.getReport().getId(),
-                bookmark.getReport().getReportImgUrl(),
-                bookmark.getReport().getReportType().getKoreanDescription(),
-                bookmark.getReport().getRoadAddr(),
-                bookmark.getReport().getBookmarks().size()
-        );
-    }
-
 
     /**
      * 북마크 토글 (북마크가 없으면 생성, 있으면 해제)
@@ -82,7 +72,7 @@ public class BookmarkService {
      * 북마크 엔티티 생성
      */
     private String createNewBookmark(Long memberId, Report report, Long reportId) {
-        Bookmark newBookmark = new Bookmark(memberId, report, true);
+        Bookmark newBookmark = createBookmark(memberId, report, true);
         bookmarkRepository.save(newBookmark);
         return "ID가 " + reportId + "인 신고글의 북마크가 등록되었습니다.";
     }
