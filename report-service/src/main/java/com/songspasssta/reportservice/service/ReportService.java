@@ -4,6 +4,8 @@ import com.songspasssta.common.exception.BadRequestException;
 import com.songspasssta.common.exception.EntityNotFoundException;
 import com.songspasssta.common.exception.ExceptionCode;
 import com.songspasssta.common.exception.PermissionDeniedException;
+import com.songspasssta.reportservice.adapter.out.kafka.ReportEventPublisher;
+import com.songspasssta.reportservice.application.port.out.ReportEventPort;
 import com.songspasssta.reportservice.domain.Report;
 import com.songspasssta.reportservice.domain.repository.BookmarkRepository;
 import com.songspasssta.reportservice.domain.repository.ReportRepository;
@@ -19,7 +21,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -41,7 +42,7 @@ public class ReportService {
     private final ReportRepository reportRepository;
     private final BookmarkRepository bookmarkRepository;
     private final FileService fileService;
-    private final ReportEventPublisher reportEventPublisher;
+    private final ReportEventPort reportEventPort;
 
     /**
      * 신고글 저장
@@ -71,7 +72,7 @@ public class ReportService {
         log.info("신고글 저장 완료. 신고글 ID: {}", report.getId());
 
         // 리워드 점수 증가
-        reportEventPublisher.publishReportCreatedEvent(memberId);
+        reportEventPort.publishReportCreatedEvent(memberId);
     }
 
     /**
