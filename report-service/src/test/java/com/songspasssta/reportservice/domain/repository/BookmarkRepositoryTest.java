@@ -1,5 +1,6 @@
 package com.songspasssta.reportservice.domain.repository;
 
+import com.songspasssta.reportservice.adapter.out.persistence.BookmarkRepository;
 import com.songspasssta.reportservice.domain.Bookmark;
 import com.songspasssta.reportservice.domain.Report;
 import com.songspasssta.reportservice.dto.response.BookmarkReports;

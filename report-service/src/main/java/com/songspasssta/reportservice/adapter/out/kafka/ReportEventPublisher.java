@@ -1,5 +1,6 @@
-package com.songspasssta.reportservice.service;
+package com.songspasssta.reportservice.adapter.out.kafka;
 
+import com.songspasssta.reportservice.application.port.out.ReportEventPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -9,7 +10,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 @Service
 @Slf4j
-public class ReportEventPublisher {
+public class ReportEventPublisher implements ReportEventPort {
 
     private final KafkaTemplate<String, String> kafkaTemplate;
 

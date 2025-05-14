@@ -1,4 +1,4 @@
-package com.songspasssta.reportservice.domain.repository;
+package com.songspasssta.reportservice.adapter.out.persistence;
 
 import com.songspasssta.reportservice.dto.response.BookmarkReports;
 import org.springframework.data.domain.Page;

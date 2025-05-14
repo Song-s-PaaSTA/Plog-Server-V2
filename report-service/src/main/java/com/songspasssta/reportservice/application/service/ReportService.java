@@ -1,16 +1,17 @@
-package com.songspasssta.reportservice.service;
+package com.songspasssta.reportservice.application.service;
 
 import com.songspasssta.common.exception.BadRequestException;
-import com.songspasssta.common.exception.EntityNotFoundException;
 import com.songspasssta.common.exception.ExceptionCode;
 import com.songspasssta.common.exception.PermissionDeniedException;
+import com.songspasssta.reportservice.application.port.in.CreateReportCommand;
+import com.songspasssta.reportservice.application.port.in.ReportUseCase;
+import com.songspasssta.reportservice.application.port.in.UpdateReportCommand;
+import com.songspasssta.reportservice.application.port.out.BookmarkRepositoryPort;
+import com.songspasssta.reportservice.application.port.out.ReportEventPort;
+import com.songspasssta.reportservice.application.port.out.ReportRepositoryPort;
 import com.songspasssta.reportservice.domain.Report;
-import com.songspasssta.reportservice.domain.repository.BookmarkRepository;
-import com.songspasssta.reportservice.domain.repository.ReportRepository;
 import com.songspasssta.reportservice.domain.type.RegionType;
 import com.songspasssta.reportservice.domain.type.ReportType;
-import com.songspasssta.reportservice.dto.request.ReportSaveRequest;
-import com.songspasssta.reportservice.dto.request.ReportUpdateRequest;
 import com.songspasssta.reportservice.dto.response.MyReportListResponse;
 import com.songspasssta.reportservice.dto.response.ReportDetailResponse;
 import com.songspasssta.reportservice.dto.response.ReportList;
@@ -19,7 +20,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -34,21 +34,27 @@ import static com.songspasssta.reportservice.domain.Report.createReport;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class ReportService {
+public class ReportService implements ReportUseCase {
 
     private static final String S3_FOLDER = "reports";
 
-    private final ReportRepository reportRepository;
-    private final BookmarkRepository bookmarkRepository;
+    private final ReportRepositoryPort reportRepositoryPort;
+    private final BookmarkRepositoryPort bookmarkRepositoryPort;
+    private final ReportEventPort reportEventPort;
+
     private final FileService fileService;
-    private final ReportEventPublisher reportEventPublisher;
 
     /**
      * 신고글 저장
      */
     @Transactional(rollbackFor = Exception.class)
-    public void save(Long memberId, ReportSaveRequest requestDto, MultipartFile reportImgFile) {
+    @Override
+    public void save(CreateReportCommand createCommand) {
         // 이미지 업로드 처리
+
+        Long memberId = createCommand.getMemberId();
+        MultipartFile reportImgFile = createCommand.getImageFile();
+
         if (reportImgFile == null || reportImgFile.isEmpty()) {
             throw new BadRequestException(1000, "신고글 이미지 파일은 필수입니다.");
         }
@@ -57,26 +63,27 @@ public class ReportService {
         String imageUrl = fileService.uploadFile(reportImgFile, S3_FOLDER);
 
         // 도로명 주소에서 지역 추출
-        RegionType regionType = RegionType.fromRoadAddr(requestDto.extractRegionFromAddr());
+        RegionType regionType = RegionType.fromRoadAddr(createCommand.extractRegionFromAddr());
 
         // 신고글 상태 설정
-        ReportType reportType = Optional.ofNullable(ReportType.fromKoreanDescription(requestDto.getReportStatus()))
+        ReportType reportType = Optional.ofNullable(ReportType.fromKoreanDescription(createCommand.getReportStatus()))
                 .orElse(ReportType.NOT_STARTED);
 
         // Report 엔티티 생성
-        Report report = createReport(memberId, imageUrl, requestDto.getReportDesc(), reportType, requestDto.getRoadAddr(), regionType);
+        Report report = createReport(memberId, imageUrl, createCommand.getReportDesc(), reportType, createCommand.getRoadAddr(), regionType);
 
         // 신고글 저장
-        reportRepository.save(report);
+        reportRepositoryPort.save(report);
         log.info("신고글 저장 완료. 신고글 ID: {}", report.getId());
 
         // 리워드 점수 증가
-        reportEventPublisher.publishReportCreatedEvent(memberId);
+        reportEventPort.publishReportCreatedEvent(memberId);
     }
 
     /**
      * 신고글 리스트
      */
+    @Override
     public ReportListResponse findAllReports(Long memberId, List<String> regions, String sort, List<String> statuses, Pageable pageable) {
         // 지역 영문명 찾기
         List<RegionType> regionTypes = Optional.ofNullable(regions).orElse(List.of()).stream()
@@ -103,7 +110,7 @@ public class ReportService {
             return new ReportListResponse(List.of());
         }
 
-        Page<ReportList> reports = reportRepository
+        Page<ReportList> reports = reportRepositoryPort
                 .findReportsWithFilter(memberId, regionTypes, reportTypes, sort, pageable);
 
         log.info("신고글 리스트 조회 완료. 조회된 신고글 수: {}", reports.getSize());
@@ -114,10 +121,9 @@ public class ReportService {
     /**
      * 신고글 상세보기
      */
+    @Override
     public ReportDetailResponse findReportById(Long reportId, Long memberId) {
-        Report report = reportRepository.findById(reportId)
-                .orElseThrow(() -> new EntityNotFoundException(ExceptionCode.REPORT_NOT_FOUND, "ID가 " + reportId + "인 신고글을 찾을 수 없습니다."));
-
+        Report report = reportRepositoryPort.findById(reportId);
         boolean isBookmarkedByUser = checkIfBookmarkedByMember(reportId, memberId);
 
         ReportDetailResponse.ReportDetail reportDetail = new ReportDetailResponse.ReportDetail(
@@ -139,14 +145,15 @@ public class ReportService {
      * 회원이 신고글에 북마크를 했는지 여부
      */
     private boolean checkIfBookmarkedByMember(Long reportId, Long memberId) {
-        return bookmarkRepository.existsByReportIdAndMemberIdAndBookmarkedTrue(reportId, memberId);
+        return bookmarkRepositoryPort.existsByReportIdAndMemberIdAndBookmarkedTrue(reportId, memberId);
     }
 
     /**
      * 내가 작성한 신고글 조회
      */
+    @Override
     public MyReportListResponse findMyReports(Long memberId) {
-        List<MyReportListResponse.MyReportList> reportList = reportRepository.findAllByMemberId(memberId).stream()
+        List<MyReportListResponse.MyReportList> reportList = reportRepositoryPort.findAllByMemberId(memberId).stream()
                 .map(report -> new MyReportListResponse.MyReportList(
                         report.getId(),
                         report.getReportImgUrl(),
@@ -164,10 +171,11 @@ public class ReportService {
      * 신고글 삭제
      */
     @Transactional(rollbackFor = Exception.class)
+    @Override
     public void deleteReport(Long reportId, Long memberId) {
         Report report = validateReportAccess(reportId, memberId);
-        bookmarkRepository.deleteAllByReportId(reportId);
-        reportRepository.delete(report);
+        bookmarkRepositoryPort.deleteAllByReportId(reportId);
+        reportRepositoryPort.delete(report);
         log.info("신고글 삭제 완료. 신고글 ID: {}", reportId);
     }
 
@@ -175,32 +183,32 @@ public class ReportService {
      * 신고글 수정
      */
     @Transactional(rollbackFor = Exception.class)
-    public void updateReport(Long reportId, Long memberId, ReportUpdateRequest requestDto, MultipartFile reportImgFile) {
-        Report report = validateReportAccess(reportId, memberId);
+    @Override
+    public void updateReport(UpdateReportCommand updateCommand) {
+        Report report = validateReportAccess(updateCommand.getReportId(), updateCommand.getMemberId());
         String existingImgUrl = report.getReportImgUrl();
 
         // 이미지 파일이 있는 경우에만 업데이트
         String imgUrl = existingImgUrl;
-        if (reportImgFile != null && !reportImgFile.isEmpty()) {
+        if (updateCommand.getImageFile() != null && !updateCommand.getImageFile().isEmpty()) {
             if (existingImgUrl != null && !existingImgUrl.isEmpty()) {
                 fileService.deleteFile(existingImgUrl);  // 기존 이미지 삭제
             }
-            imgUrl = fileService.uploadFile(reportImgFile, S3_FOLDER);  // 새 이미지 업로드
+            imgUrl = fileService.uploadFile(updateCommand.getImageFile(), S3_FOLDER);  // 새 이미지 업로드
         }
 
-        ReportType reportType = Optional.ofNullable(ReportType.fromKoreanDescription(requestDto.getReportStatus()))
+        ReportType reportType = Optional.ofNullable(ReportType.fromKoreanDescription(updateCommand.getReportStatus()))
                 .orElse(ReportType.NOT_STARTED);
-        report.updateDetails(requestDto.getReportDesc(), reportType, imgUrl);
+        report.updateDetails(updateCommand.getReportDesc(), reportType, imgUrl);
 
-        log.info("신고글 수정 완료. 신고글 ID: {}", reportId);
+        log.info("신고글 수정 완료. 신고글 ID: {}", updateCommand.getReportId());
     }
 
     /**
      * 신고글에 대한 접근 권한을 확인하는 메서드
      */
     private Report validateReportAccess(Long reportId, Long memberId) {
-        Report report = reportRepository.findById(reportId)
-                .orElseThrow(() -> new EntityNotFoundException(ExceptionCode.REPORT_NOT_FOUND, "ID가 " + reportId + "인 신고글을 찾을 수 없습니다."));
+        Report report = reportRepositoryPort.findById(reportId);
 
         if (!report.getMemberId().equals(memberId)) {
             log.warn("접근 권한 없음. 신고글 ID: {}, 회원 ID: {}", reportId, memberId);
@@ -214,9 +222,10 @@ public class ReportService {
      * 멤버가 작성한 신고글 삭제 (회원 탈퇴시 사용)
      */
     @Transactional
+    @Override
     public void deleteAllByMemberId(Long memberId) {
-        reportRepository.deleteByMemberId(memberId);
-        bookmarkRepository.deleteByMemberId(memberId);
+        reportRepositoryPort.deleteByMemberId(memberId);
+        bookmarkRepositoryPort.deleteByMemberId(memberId);
         log.info("회원이 작성한 모든 신고글 삭제 완료. 회원 ID: {}", memberId);
     }
 }
