@@ -1,10 +1,16 @@
-package com.songspasssta.reportservice.service;
+package com.songspasssta.reportservice.adapter.out.persistence;
 
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.*;
+import com.amazonaws.services.s3.model.CannedAccessControlList;
+import com.amazonaws.services.s3.model.DeleteObjectRequest;
+import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.songspasssta.common.PersistenceAdapter;
+import com.songspasssta.common.exception.ExceptionCode;
+import com.songspasssta.common.exception.FileOperationException;
+import com.songspasssta.reportservice.application.port.out.S3Port;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
@@ -14,20 +20,14 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * AWS S3 관련 작업을 처리하는 서비스 클래스.
- */
 @Slf4j
-@Service
-public class S3Service {
+@PersistenceAdapter
+@RequiredArgsConstructor
+public class S3Adapter implements S3Port {
     private final AmazonS3 amazonS3;
 
     @Value("${cloud.aws.s3.bucket}")
     private String bucket;
-
-    public S3Service(AmazonS3 amazonS3) {
-        this.amazonS3 = amazonS3;
-    }
 
     /**
      * 파일을 S3에 업로드합니다.
@@ -36,12 +36,32 @@ public class S3Service {
      * @param fileName      원본 파일 이름
      * @param multipartFile 업로드할 MultipartFile
      * @return 업로드된 파일의 S3 URL
-     * @throws IOException 파일 변환 중 에러 발생 시
      */
-    public String upload(String dirName, String fileName, MultipartFile multipartFile) throws IOException {
-        File uploadFile = convert(multipartFile)
-                .orElseThrow(() -> new IllegalArgumentException("MultipartFile을 File로 전환하는 데 실패했습니다."));
-        return upload(dirName, fileName, uploadFile);
+
+    public String uploadFile(String dirName, String fileName, MultipartFile multipartFile) {
+        try {
+            File uploadFile = convert(multipartFile)
+                    .orElseThrow(() -> new IllegalArgumentException("MultipartFile을 File로 전환하는 데 실패했습니다."));
+            return upload(dirName, fileName, uploadFile);
+        } catch (IOException e) {
+            log.error("S3 파일 업로드 실패 - 파일명: {}, 오류 메시지: {}", multipartFile.getOriginalFilename(), e.getMessage());
+            throw new FileOperationException(ExceptionCode.FILE_UPLOAD_ERROR);
+        }
+    }
+
+    /**
+     * S3에서 파일을 삭제합니다.
+     *
+     * @param fileUrl 삭제할 파일의 URL
+     */
+    public void deleteFile(String fileUrl) {
+        try {
+            String fileKey = extractFileKey(fileUrl);
+            amazonS3.deleteObject(new DeleteObjectRequest(bucket, fileKey));
+        } catch (Exception e) {
+            log.error("S3 파일 삭제 실패 - 파일 URL: {}, 오류 메시지: {}", fileUrl, e.getMessage());
+            throw new FileOperationException(ExceptionCode.FILE_DELETE_ERROR);
+        }
     }
 
     /**
@@ -76,18 +96,9 @@ public class S3Service {
         log.info("FileName: {}", fileName);
         return generateS3Url(fileName);
     }
+
     private String generateS3Url(String fileName) {
         return String.format("https://%s.s3.%s.amazonaws.com/%s", bucket, "ap-northeast-2", fileName);
-    }
-
-    /**
-     * S3에서 파일을 삭제합니다.
-     *
-     * @param fileUrl 삭제할 파일의 URL
-     */
-    public void delete(String fileUrl) {
-        String fileKey = extractFileKey(fileUrl);
-        amazonS3.deleteObject(new DeleteObjectRequest(bucket, fileKey));
     }
 
     /**
