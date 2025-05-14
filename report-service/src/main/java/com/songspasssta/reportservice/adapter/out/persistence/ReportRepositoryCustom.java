@@ -1,4 +1,4 @@
-package com.songspasssta.reportservice.domain.repository;
+package com.songspasssta.reportservice.adapter.out.persistence;
 
 import com.songspasssta.reportservice.domain.type.RegionType;
 import com.songspasssta.reportservice.domain.type.ReportType;

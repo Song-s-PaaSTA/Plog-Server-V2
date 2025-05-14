@@ -1,14 +1,12 @@
 package com.songspasssta.reportservice.service;
 
 import com.songspasssta.common.exception.BadRequestException;
-import com.songspasssta.common.exception.EntityNotFoundException;
 import com.songspasssta.common.exception.ExceptionCode;
 import com.songspasssta.common.exception.PermissionDeniedException;
-import com.songspasssta.reportservice.adapter.out.kafka.ReportEventPublisher;
 import com.songspasssta.reportservice.application.port.out.ReportEventPort;
+import com.songspasssta.reportservice.application.port.out.ReportRepositoryPort;
 import com.songspasssta.reportservice.domain.Report;
 import com.songspasssta.reportservice.domain.repository.BookmarkRepository;
-import com.songspasssta.reportservice.domain.repository.ReportRepository;
 import com.songspasssta.reportservice.domain.type.RegionType;
 import com.songspasssta.reportservice.domain.type.ReportType;
 import com.songspasssta.reportservice.dto.request.ReportSaveRequest;
@@ -39,7 +37,7 @@ public class ReportService {
 
     private static final String S3_FOLDER = "reports";
 
-    private final ReportRepository reportRepository;
+    private final ReportRepositoryPort reportRepositoryPort;
     private final BookmarkRepository bookmarkRepository;
     private final FileService fileService;
     private final ReportEventPort reportEventPort;
@@ -68,7 +66,7 @@ public class ReportService {
         Report report = createReport(memberId, imageUrl, requestDto.getReportDesc(), reportType, requestDto.getRoadAddr(), regionType);
 
         // 신고글 저장
-        reportRepository.save(report);
+        reportRepositoryPort.save(report);
         log.info("신고글 저장 완료. 신고글 ID: {}", report.getId());
 
         // 리워드 점수 증가
@@ -104,7 +102,7 @@ public class ReportService {
             return new ReportListResponse(List.of());
         }
 
-        Page<ReportList> reports = reportRepository
+        Page<ReportList> reports = reportRepositoryPort
                 .findReportsWithFilter(memberId, regionTypes, reportTypes, sort, pageable);
 
         log.info("신고글 리스트 조회 완료. 조회된 신고글 수: {}", reports.getSize());
@@ -116,9 +114,7 @@ public class ReportService {
      * 신고글 상세보기
      */
     public ReportDetailResponse findReportById(Long reportId, Long memberId) {
-        Report report = reportRepository.findById(reportId)
-                .orElseThrow(() -> new EntityNotFoundException(ExceptionCode.REPORT_NOT_FOUND, "ID가 " + reportId + "인 신고글을 찾을 수 없습니다."));
-
+        Report report = reportRepositoryPort.findById(reportId);
         boolean isBookmarkedByUser = checkIfBookmarkedByMember(reportId, memberId);
 
         ReportDetailResponse.ReportDetail reportDetail = new ReportDetailResponse.ReportDetail(
@@ -147,7 +143,7 @@ public class ReportService {
      * 내가 작성한 신고글 조회
      */
     public MyReportListResponse findMyReports(Long memberId) {
-        List<MyReportListResponse.MyReportList> reportList = reportRepository.findAllByMemberId(memberId).stream()
+        List<MyReportListResponse.MyReportList> reportList = reportRepositoryPort.findAllByMemberId(memberId).stream()
                 .map(report -> new MyReportListResponse.MyReportList(
                         report.getId(),
                         report.getReportImgUrl(),
@@ -168,7 +164,7 @@ public class ReportService {
     public void deleteReport(Long reportId, Long memberId) {
         Report report = validateReportAccess(reportId, memberId);
         bookmarkRepository.deleteAllByReportId(reportId);
-        reportRepository.delete(report);
+        reportRepositoryPort.delete(report);
         log.info("신고글 삭제 완료. 신고글 ID: {}", reportId);
     }
 
@@ -200,8 +196,7 @@ public class ReportService {
      * 신고글에 대한 접근 권한을 확인하는 메서드
      */
     private Report validateReportAccess(Long reportId, Long memberId) {
-        Report report = reportRepository.findById(reportId)
-                .orElseThrow(() -> new EntityNotFoundException(ExceptionCode.REPORT_NOT_FOUND, "ID가 " + reportId + "인 신고글을 찾을 수 없습니다."));
+        Report report = reportRepositoryPort.findById(reportId);
 
         if (!report.getMemberId().equals(memberId)) {
             log.warn("접근 권한 없음. 신고글 ID: {}, 회원 ID: {}", reportId, memberId);
@@ -216,7 +211,7 @@ public class ReportService {
      */
     @Transactional
     public void deleteAllByMemberId(Long memberId) {
-        reportRepository.deleteByMemberId(memberId);
+        reportRepositoryPort.deleteByMemberId(memberId);
         bookmarkRepository.deleteByMemberId(memberId);
         log.info("회원이 작성한 모든 신고글 삭제 완료. 회원 ID: {}", memberId);
     }

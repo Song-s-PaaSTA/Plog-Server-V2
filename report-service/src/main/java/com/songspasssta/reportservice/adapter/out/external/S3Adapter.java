@@ -1,4 +1,4 @@
-package com.songspasssta.reportservice.adapter.out.persistence;
+package com.songspasssta.reportservice.adapter.out.external;
 
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.CannedAccessControlList;

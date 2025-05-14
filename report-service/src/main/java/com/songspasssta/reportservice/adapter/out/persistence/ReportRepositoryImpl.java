@@ -1,4 +1,4 @@
-package com.songspasssta.reportservice.domain.repository;
+package com.songspasssta.reportservice.adapter.out.persistence;
 
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.JPQLQuery;

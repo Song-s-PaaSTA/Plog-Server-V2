@@ -5,13 +5,11 @@ import com.songspasssta.common.exception.ExceptionCode;
 import com.songspasssta.reportservice.domain.Bookmark;
 import com.songspasssta.reportservice.domain.Report;
 import com.songspasssta.reportservice.domain.repository.BookmarkRepository;
-import com.songspasssta.reportservice.domain.repository.ReportRepository;
+import com.songspasssta.reportservice.adapter.out.persistence.ReportRepository;
 import com.songspasssta.reportservice.dto.response.BookmarkReports;
 import com.songspasssta.reportservice.dto.response.BookmarkedReportsResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
