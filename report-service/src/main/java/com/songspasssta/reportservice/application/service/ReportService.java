@@ -1,8 +1,9 @@
-package com.songspasssta.reportservice.service;
+package com.songspasssta.reportservice.application.service;
 
 import com.songspasssta.common.exception.BadRequestException;
 import com.songspasssta.common.exception.ExceptionCode;
 import com.songspasssta.common.exception.PermissionDeniedException;
+import com.songspasssta.reportservice.application.port.in.ReportUseCase;
 import com.songspasssta.reportservice.application.port.out.ReportEventPort;
 import com.songspasssta.reportservice.application.port.out.ReportRepositoryPort;
 import com.songspasssta.reportservice.domain.Report;
@@ -33,7 +34,7 @@ import static com.songspasssta.reportservice.domain.Report.createReport;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class ReportService {
+public class ReportService implements ReportUseCase {
 
     private static final String S3_FOLDER = "reports";
 
@@ -46,6 +47,7 @@ public class ReportService {
      * 신고글 저장
      */
     @Transactional(rollbackFor = Exception.class)
+    @Override
     public void save(Long memberId, ReportSaveRequest requestDto, MultipartFile reportImgFile) {
         // 이미지 업로드 처리
         if (reportImgFile == null || reportImgFile.isEmpty()) {
@@ -76,6 +78,7 @@ public class ReportService {
     /**
      * 신고글 리스트
      */
+    @Override
     public ReportListResponse findAllReports(Long memberId, List<String> regions, String sort, List<String> statuses, Pageable pageable) {
         // 지역 영문명 찾기
         List<RegionType> regionTypes = Optional.ofNullable(regions).orElse(List.of()).stream()
@@ -113,6 +116,7 @@ public class ReportService {
     /**
      * 신고글 상세보기
      */
+    @Override
     public ReportDetailResponse findReportById(Long reportId, Long memberId) {
         Report report = reportRepositoryPort.findById(reportId);
         boolean isBookmarkedByUser = checkIfBookmarkedByMember(reportId, memberId);
@@ -142,6 +146,7 @@ public class ReportService {
     /**
      * 내가 작성한 신고글 조회
      */
+    @Override
     public MyReportListResponse findMyReports(Long memberId) {
         List<MyReportListResponse.MyReportList> reportList = reportRepositoryPort.findAllByMemberId(memberId).stream()
                 .map(report -> new MyReportListResponse.MyReportList(
@@ -161,6 +166,7 @@ public class ReportService {
      * 신고글 삭제
      */
     @Transactional(rollbackFor = Exception.class)
+    @Override
     public void deleteReport(Long reportId, Long memberId) {
         Report report = validateReportAccess(reportId, memberId);
         bookmarkRepository.deleteAllByReportId(reportId);
@@ -172,6 +178,7 @@ public class ReportService {
      * 신고글 수정
      */
     @Transactional(rollbackFor = Exception.class)
+    @Override
     public void updateReport(Long reportId, Long memberId, ReportUpdateRequest requestDto, MultipartFile reportImgFile) {
         Report report = validateReportAccess(reportId, memberId);
         String existingImgUrl = report.getReportImgUrl();
@@ -210,6 +217,7 @@ public class ReportService {
      * 멤버가 작성한 신고글 삭제 (회원 탈퇴시 사용)
      */
     @Transactional
+    @Override
     public void deleteAllByMemberId(Long memberId) {
         reportRepositoryPort.deleteByMemberId(memberId);
         bookmarkRepository.deleteByMemberId(memberId);

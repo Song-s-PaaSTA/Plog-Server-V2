@@ -1,4 +1,4 @@
-package com.songspasssta.reportservice.service;
+package com.songspasssta.reportservice.application.service;
 
 import com.songspasssta.reportservice.application.port.out.S3Port;
 import lombok.RequiredArgsConstructor;

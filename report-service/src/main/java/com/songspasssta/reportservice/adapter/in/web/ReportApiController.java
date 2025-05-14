@@ -1,12 +1,12 @@
-package com.songspasssta.reportservice.controller;
+package com.songspasssta.reportservice.adapter.in.web;
 
 import com.songspasssta.common.response.SuccessResponse;
+import com.songspasssta.reportservice.application.port.in.ReportUseCase;
 import com.songspasssta.reportservice.dto.request.ReportSaveRequest;
 import com.songspasssta.reportservice.dto.request.ReportUpdateRequest;
 import com.songspasssta.reportservice.dto.response.MyReportListResponse;
 import com.songspasssta.reportservice.dto.response.ReportDetailResponse;
 import com.songspasssta.reportservice.dto.response.ReportListResponse;
-import com.songspasssta.reportservice.service.ReportService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -26,8 +26,7 @@ import static com.songspasssta.common.auth.GatewayConstants.GATEWAY_AUTH_HEADER;
 @RequestMapping("/api/v1/reports")
 public class ReportApiController {
 
-    private final ReportService reportService;
-
+    private final ReportUseCase reportUseCase;
     /**
      * 신고글 저장
      */
@@ -35,7 +34,7 @@ public class ReportApiController {
     public ResponseEntity<SuccessResponse<?>> save(@RequestHeader(GATEWAY_AUTH_HEADER) Long memberId,
                                      @RequestPart("requestDto") @Valid ReportSaveRequest requestDto,
                                      @RequestPart(value = "reportImgFile", required = false) MultipartFile reportImgFile) {
-        reportService.save(memberId, requestDto, reportImgFile);
+        reportUseCase.save(memberId, requestDto, reportImgFile);
         return ResponseEntity.ok().body(SuccessResponse.ofEmpty());
     }
 
@@ -49,7 +48,7 @@ public class ReportApiController {
             @RequestParam(value = "sort", required = false) String sort,
             @RequestParam(value = "status", required = false) List<String> statuses,
             Pageable pageable) {
-        ReportListResponse response = reportService.findAllReports(memberId, regions, sort, statuses, pageable);
+        ReportListResponse response = reportUseCase.findAllReports(memberId, regions, sort, statuses, pageable);
         return ResponseEntity.ok().body(SuccessResponse.of(response));
     }
 
@@ -59,7 +58,7 @@ public class ReportApiController {
     @GetMapping("/{reportId}")
     public ResponseEntity<SuccessResponse<ReportDetailResponse>> findReportById(@PathVariable("reportId") Long reportId,
                                                                                 @RequestHeader(GATEWAY_AUTH_HEADER) Long memberId) {
-        ReportDetailResponse response = reportService.findReportById(reportId, memberId);
+        ReportDetailResponse response = reportUseCase.findReportById(reportId, memberId);
         return ResponseEntity.ok().body(SuccessResponse.of(response));
     }
 
@@ -68,7 +67,7 @@ public class ReportApiController {
      */
     @GetMapping("/mine")
     public ResponseEntity<SuccessResponse<MyReportListResponse>> findMyReports(@RequestHeader(GATEWAY_AUTH_HEADER) Long memberId) {
-        MyReportListResponse response = reportService.findMyReports(memberId);
+        MyReportListResponse response = reportUseCase.findMyReports(memberId);
         return ResponseEntity.ok().body(SuccessResponse.of(response));
     }
 
@@ -78,7 +77,7 @@ public class ReportApiController {
     @DeleteMapping("/{reportId}")
     public ResponseEntity<SuccessResponse<?>> deleteReport(@PathVariable("reportId") Long reportId,
                                              @RequestHeader(GATEWAY_AUTH_HEADER) Long memberId) {
-        reportService.deleteReport(reportId, memberId);
+        reportUseCase.deleteReport(reportId, memberId);
         return ResponseEntity.ok().body(SuccessResponse.ofEmpty());
     }
 
@@ -90,7 +89,7 @@ public class ReportApiController {
                                              @RequestHeader(GATEWAY_AUTH_HEADER) Long memberId,
                                              @RequestPart("requestDto") @Valid ReportUpdateRequest requestDto,
                                              @RequestPart(value = "reportImgFile", required = false) MultipartFile reportImgFile) {
-        reportService.updateReport(reportId, memberId, requestDto, reportImgFile);
+        reportUseCase.updateReport(reportId, memberId, requestDto, reportImgFile);
         return ResponseEntity.ok().body(SuccessResponse.ofEmpty());
     }
 
@@ -99,7 +98,7 @@ public class ReportApiController {
      */
     @DeleteMapping
     public ResponseEntity<Void> deleteAllByMemberId(@RequestParam("memberId") Long memberId) {
-        reportService.deleteAllByMemberId(memberId);
+        reportUseCase.deleteAllByMemberId(memberId);
         return ResponseEntity.noContent().build();
     }
 }
