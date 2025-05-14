@@ -1,11 +1,10 @@
-package com.songspasssta.reportservice.service;
+package com.songspasssta.reportservice.application.service;
 
-import com.songspasssta.common.exception.EntityNotFoundException;
-import com.songspasssta.common.exception.ExceptionCode;
+import com.songspasssta.reportservice.application.port.in.BookmarkUseCase;
+import com.songspasssta.reportservice.application.port.out.BookmarkRepositoryPort;
+import com.songspasssta.reportservice.application.port.out.ReportRepositoryPort;
 import com.songspasssta.reportservice.domain.Bookmark;
 import com.songspasssta.reportservice.domain.Report;
-import com.songspasssta.reportservice.domain.repository.BookmarkRepository;
-import com.songspasssta.reportservice.adapter.out.persistence.ReportRepository;
 import com.songspasssta.reportservice.dto.response.BookmarkReports;
 import com.songspasssta.reportservice.dto.response.BookmarkedReportsResponse;
 import lombok.RequiredArgsConstructor;
@@ -24,15 +23,17 @@ import static com.songspasssta.reportservice.domain.Bookmark.createBookmark;
 @Transactional
 @RequiredArgsConstructor
 @Slf4j
-public class BookmarkService {
-    private final BookmarkRepository bookmarkRepository;
-    private final ReportRepository reportRepository;
+public class BookmarkService implements BookmarkUseCase {
+    private final BookmarkRepositoryPort bookmarkRepositoryPort;
+    private final ReportRepositoryPort reportRepositoryPort;
 
     /**
      * 특정 사용자가 북마크한 신고글 목록 조회
      */
+
+    @Override
     public BookmarkedReportsResponse findMyBookmarks(Long memberId) {
-        List<BookmarkReports> bookmarks = bookmarkRepository.findAllByMemberIdAndBookmarked(memberId);
+        List<BookmarkReports> bookmarks = bookmarkRepositoryPort.findAllByMemberIdAndBookmarked(memberId);
 
         log.info("북마크 조회 - MemberId: {}, 북마크 개수: {}", memberId, bookmarks.size());
 
@@ -42,15 +43,11 @@ public class BookmarkService {
     /**
      * 북마크 토글 (북마크가 없으면 생성, 있으면 해제)
      */
-    public String toggleBookmark(Long reportId, Long memberId) {
-        Report report = reportRepository.findById(reportId)
-                .orElseThrow(() -> {
-                    log.warn("신고글을 찾을 수 없음 - ReportId: {}", reportId);
-                    return new EntityNotFoundException(ExceptionCode.REPORT_NOT_FOUND,
-                            "ID가 " + reportId + "인 신고글을 찾을 수 없습니다.");
-                });
 
-        return bookmarkRepository.findByReportIdAndMemberId(reportId, memberId)
+    @Override
+    public String toggleBookmark(Long reportId, Long memberId) {
+        Report report = reportRepositoryPort.findById(reportId);
+        return bookmarkRepositoryPort.findByReportIdAndMemberId(reportId, memberId)
                 .map(bookmark -> toggleExistingBookmark(bookmark, reportId))
                 .orElseGet(() -> createNewBookmark(memberId, report, reportId));
     }
@@ -60,7 +57,7 @@ public class BookmarkService {
      */
     private String toggleExistingBookmark(Bookmark bookmark, Long reportId) {
         bookmark.toggleBookmarkStatus(!bookmark.getBookmarked());
-        bookmarkRepository.save(bookmark);
+        bookmarkRepositoryPort.save(bookmark);
         return bookmark.getBookmarked()
                 ? "ID가 " + reportId + "인 신고글의 북마크가 등록되었습니다."
                 : "ID가 " + reportId + "인 신고글의 북마크가 해제되었습니다."; // 변경된 상태에 따라 메시지 반환
@@ -71,7 +68,7 @@ public class BookmarkService {
      */
     private String createNewBookmark(Long memberId, Report report, Long reportId) {
         Bookmark newBookmark = createBookmark(memberId, report, true);
-        bookmarkRepository.save(newBookmark);
+        bookmarkRepositoryPort.save(newBookmark);
         return "ID가 " + reportId + "인 신고글의 북마크가 등록되었습니다.";
     }
 }

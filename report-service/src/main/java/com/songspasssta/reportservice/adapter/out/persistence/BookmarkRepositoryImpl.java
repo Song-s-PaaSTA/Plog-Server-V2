@@ -1,15 +1,10 @@
-package com.songspasssta.reportservice.domain.repository;
+package com.songspasssta.reportservice.adapter.out.persistence;
 
-import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
-import com.songspasssta.reportservice.domain.Bookmark;
 import com.songspasssta.reportservice.domain.QBookmark;
 import com.songspasssta.reportservice.dto.response.BookmarkReports;
 import com.songspasssta.reportservice.dto.response.QBookmarkReports;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.support.PageableExecutionUtils;
 
 import java.util.List;
 

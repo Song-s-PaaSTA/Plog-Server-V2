@@ -6,10 +6,10 @@ import com.songspasssta.common.exception.PermissionDeniedException;
 import com.songspasssta.reportservice.application.port.in.CreateReportCommand;
 import com.songspasssta.reportservice.application.port.in.ReportUseCase;
 import com.songspasssta.reportservice.application.port.in.UpdateReportCommand;
+import com.songspasssta.reportservice.application.port.out.BookmarkRepositoryPort;
 import com.songspasssta.reportservice.application.port.out.ReportEventPort;
 import com.songspasssta.reportservice.application.port.out.ReportRepositoryPort;
 import com.songspasssta.reportservice.domain.Report;
-import com.songspasssta.reportservice.domain.repository.BookmarkRepository;
 import com.songspasssta.reportservice.domain.type.RegionType;
 import com.songspasssta.reportservice.domain.type.ReportType;
 import com.songspasssta.reportservice.dto.response.MyReportListResponse;
@@ -39,9 +39,10 @@ public class ReportService implements ReportUseCase {
     private static final String S3_FOLDER = "reports";
 
     private final ReportRepositoryPort reportRepositoryPort;
-    private final BookmarkRepository bookmarkRepository;
-    private final FileService fileService;
+    private final BookmarkRepositoryPort bookmarkRepositoryPort;
     private final ReportEventPort reportEventPort;
+
+    private final FileService fileService;
 
     /**
      * 신고글 저장
@@ -144,7 +145,7 @@ public class ReportService implements ReportUseCase {
      * 회원이 신고글에 북마크를 했는지 여부
      */
     private boolean checkIfBookmarkedByMember(Long reportId, Long memberId) {
-        return bookmarkRepository.existsByReportIdAndMemberIdAndBookmarkedTrue(reportId, memberId);
+        return bookmarkRepositoryPort.existsByReportIdAndMemberIdAndBookmarkedTrue(reportId, memberId);
     }
 
     /**
@@ -173,7 +174,7 @@ public class ReportService implements ReportUseCase {
     @Override
     public void deleteReport(Long reportId, Long memberId) {
         Report report = validateReportAccess(reportId, memberId);
-        bookmarkRepository.deleteAllByReportId(reportId);
+        bookmarkRepositoryPort.deleteAllByReportId(reportId);
         reportRepositoryPort.delete(report);
         log.info("신고글 삭제 완료. 신고글 ID: {}", reportId);
     }
@@ -224,7 +225,7 @@ public class ReportService implements ReportUseCase {
     @Override
     public void deleteAllByMemberId(Long memberId) {
         reportRepositoryPort.deleteByMemberId(memberId);
-        bookmarkRepository.deleteByMemberId(memberId);
+        bookmarkRepositoryPort.deleteByMemberId(memberId);
         log.info("회원이 작성한 모든 신고글 삭제 완료. 회원 ID: {}", memberId);
     }
 }
