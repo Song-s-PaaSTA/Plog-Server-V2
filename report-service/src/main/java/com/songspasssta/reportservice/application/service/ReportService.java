@@ -3,15 +3,15 @@ package com.songspasssta.reportservice.application.service;
 import com.songspasssta.common.exception.BadRequestException;
 import com.songspasssta.common.exception.ExceptionCode;
 import com.songspasssta.common.exception.PermissionDeniedException;
+import com.songspasssta.reportservice.application.port.in.CreateReportCommand;
 import com.songspasssta.reportservice.application.port.in.ReportUseCase;
+import com.songspasssta.reportservice.application.port.in.UpdateReportCommand;
 import com.songspasssta.reportservice.application.port.out.ReportEventPort;
 import com.songspasssta.reportservice.application.port.out.ReportRepositoryPort;
 import com.songspasssta.reportservice.domain.Report;
 import com.songspasssta.reportservice.domain.repository.BookmarkRepository;
 import com.songspasssta.reportservice.domain.type.RegionType;
 import com.songspasssta.reportservice.domain.type.ReportType;
-import com.songspasssta.reportservice.dto.request.ReportSaveRequest;
-import com.songspasssta.reportservice.dto.request.ReportUpdateRequest;
 import com.songspasssta.reportservice.dto.response.MyReportListResponse;
 import com.songspasssta.reportservice.dto.response.ReportDetailResponse;
 import com.songspasssta.reportservice.dto.response.ReportList;
@@ -48,8 +48,12 @@ public class ReportService implements ReportUseCase {
      */
     @Transactional(rollbackFor = Exception.class)
     @Override
-    public void save(Long memberId, ReportSaveRequest requestDto, MultipartFile reportImgFile) {
+    public void save(CreateReportCommand createCommand) {
         // 이미지 업로드 처리
+
+        Long memberId = createCommand.getMemberId();
+        MultipartFile reportImgFile = createCommand.getImageFile();
+
         if (reportImgFile == null || reportImgFile.isEmpty()) {
             throw new BadRequestException(1000, "신고글 이미지 파일은 필수입니다.");
         }
@@ -58,14 +62,14 @@ public class ReportService implements ReportUseCase {
         String imageUrl = fileService.uploadFile(reportImgFile, S3_FOLDER);
 
         // 도로명 주소에서 지역 추출
-        RegionType regionType = RegionType.fromRoadAddr(requestDto.extractRegionFromAddr());
+        RegionType regionType = RegionType.fromRoadAddr(createCommand.extractRegionFromAddr());
 
         // 신고글 상태 설정
-        ReportType reportType = Optional.ofNullable(ReportType.fromKoreanDescription(requestDto.getReportStatus()))
+        ReportType reportType = Optional.ofNullable(ReportType.fromKoreanDescription(createCommand.getReportStatus()))
                 .orElse(ReportType.NOT_STARTED);
 
         // Report 엔티티 생성
-        Report report = createReport(memberId, imageUrl, requestDto.getReportDesc(), reportType, requestDto.getRoadAddr(), regionType);
+        Report report = createReport(memberId, imageUrl, createCommand.getReportDesc(), reportType, createCommand.getRoadAddr(), regionType);
 
         // 신고글 저장
         reportRepositoryPort.save(report);
@@ -179,24 +183,24 @@ public class ReportService implements ReportUseCase {
      */
     @Transactional(rollbackFor = Exception.class)
     @Override
-    public void updateReport(Long reportId, Long memberId, ReportUpdateRequest requestDto, MultipartFile reportImgFile) {
-        Report report = validateReportAccess(reportId, memberId);
+    public void updateReport(UpdateReportCommand updateCommand) {
+        Report report = validateReportAccess(updateCommand.getReportId(), updateCommand.getMemberId());
         String existingImgUrl = report.getReportImgUrl();
 
         // 이미지 파일이 있는 경우에만 업데이트
         String imgUrl = existingImgUrl;
-        if (reportImgFile != null && !reportImgFile.isEmpty()) {
+        if (updateCommand.getImageFile() != null && !updateCommand.getImageFile().isEmpty()) {
             if (existingImgUrl != null && !existingImgUrl.isEmpty()) {
                 fileService.deleteFile(existingImgUrl);  // 기존 이미지 삭제
             }
-            imgUrl = fileService.uploadFile(reportImgFile, S3_FOLDER);  // 새 이미지 업로드
+            imgUrl = fileService.uploadFile(updateCommand.getImageFile(), S3_FOLDER);  // 새 이미지 업로드
         }
 
-        ReportType reportType = Optional.ofNullable(ReportType.fromKoreanDescription(requestDto.getReportStatus()))
+        ReportType reportType = Optional.ofNullable(ReportType.fromKoreanDescription(updateCommand.getReportStatus()))
                 .orElse(ReportType.NOT_STARTED);
-        report.updateDetails(requestDto.getReportDesc(), reportType, imgUrl);
+        report.updateDetails(updateCommand.getReportDesc(), reportType, imgUrl);
 
-        log.info("신고글 수정 완료. 신고글 ID: {}", reportId);
+        log.info("신고글 수정 완료. 신고글 ID: {}", updateCommand.getReportId());
     }
 
     /**

@@ -1,7 +1,10 @@
 package com.songspasssta.reportservice.adapter.in.web;
 
 import com.songspasssta.common.response.SuccessResponse;
+import com.songspasssta.reportservice.application.port.in.CreateReportCommand;
 import com.songspasssta.reportservice.application.port.in.ReportUseCase;
+import com.songspasssta.reportservice.application.port.in.UpdateReportCommand;
+import com.songspasssta.reportservice.dto.mapper.ReportCommandMapper;
 import com.songspasssta.reportservice.dto.request.ReportSaveRequest;
 import com.songspasssta.reportservice.dto.request.ReportUpdateRequest;
 import com.songspasssta.reportservice.dto.response.MyReportListResponse;
@@ -34,7 +37,8 @@ public class ReportApiController {
     public ResponseEntity<SuccessResponse<?>> save(@RequestHeader(GATEWAY_AUTH_HEADER) Long memberId,
                                      @RequestPart("requestDto") @Valid ReportSaveRequest requestDto,
                                      @RequestPart(value = "reportImgFile", required = false) MultipartFile reportImgFile) {
-        reportUseCase.save(memberId, requestDto, reportImgFile);
+        CreateReportCommand createCommand = ReportCommandMapper.toCreateCommand(memberId, requestDto, reportImgFile);
+        reportUseCase.save(createCommand);
         return ResponseEntity.ok().body(SuccessResponse.ofEmpty());
     }
 
@@ -48,6 +52,7 @@ public class ReportApiController {
             @RequestParam(value = "sort", required = false) String sort,
             @RequestParam(value = "status", required = false) List<String> statuses,
             Pageable pageable) {
+
         ReportListResponse response = reportUseCase.findAllReports(memberId, regions, sort, statuses, pageable);
         return ResponseEntity.ok().body(SuccessResponse.of(response));
     }
@@ -89,7 +94,9 @@ public class ReportApiController {
                                              @RequestHeader(GATEWAY_AUTH_HEADER) Long memberId,
                                              @RequestPart("requestDto") @Valid ReportUpdateRequest requestDto,
                                              @RequestPart(value = "reportImgFile", required = false) MultipartFile reportImgFile) {
-        reportUseCase.updateReport(reportId, memberId, requestDto, reportImgFile);
+
+        UpdateReportCommand updateCommand = ReportCommandMapper.toUpdateCommand(memberId, reportId, requestDto, reportImgFile);
+        reportUseCase.updateReport(updateCommand);
         return ResponseEntity.ok().body(SuccessResponse.ofEmpty());
     }
 

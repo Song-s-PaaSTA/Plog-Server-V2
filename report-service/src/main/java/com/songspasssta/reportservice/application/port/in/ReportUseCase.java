@@ -1,17 +1,14 @@
 package com.songspasssta.reportservice.application.port.in;
 
-import com.songspasssta.reportservice.dto.request.ReportSaveRequest;
-import com.songspasssta.reportservice.dto.request.ReportUpdateRequest;
 import com.songspasssta.reportservice.dto.response.MyReportListResponse;
 import com.songspasssta.reportservice.dto.response.ReportDetailResponse;
 import com.songspasssta.reportservice.dto.response.ReportListResponse;
 import org.springframework.data.domain.Pageable;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
 public interface ReportUseCase {
-    void save(Long memberId, ReportSaveRequest requestDto, MultipartFile reportImgFile);
+    void save(CreateReportCommand createCommand);
 
     ReportListResponse findAllReports(Long memberId, List<String> regions, String sort, List<String> statuses, Pageable pageable);
 
@@ -21,7 +18,7 @@ public interface ReportUseCase {
 
     void deleteReport(Long reportId, Long memberId);
 
-    void updateReport(Long reportId, Long memberId, ReportUpdateRequest requestDto, MultipartFile reportImgFile);
+    void updateReport(UpdateReportCommand updateCommand);
 
     void deleteAllByMemberId(Long memberId);
 }
