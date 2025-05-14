@@ -41,7 +41,7 @@ public class ReportService {
     private final ReportRepository reportRepository;
     private final BookmarkRepository bookmarkRepository;
     private final FileService fileService;
-    private final RewardService rewardService;
+    private final ReportEventPublisher reportEventPublisher;
 
     /**
      * 신고글 저장
@@ -71,8 +71,7 @@ public class ReportService {
         log.info("신고글 저장 완료. 신고글 ID: {}", report.getId());
 
         // 리워드 점수 증가
-        rewardService.increaseRewardScore(memberId);
-        log.info("리워드 점수 증가. 회원 ID: {}", memberId);
+        reportEventPublisher.publishReportCreatedEvent(memberId);
     }
 
     /**
