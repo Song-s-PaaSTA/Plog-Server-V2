@@ -1,0 +1,8 @@
+rootProject.name = 'plog-v2'
+include 'apigateway-service'
+include 'member-service'
+include 'eureka-server'
+include 'common'
+include 'plogging-service'
+include 'report-service'
+include 'trash-service'

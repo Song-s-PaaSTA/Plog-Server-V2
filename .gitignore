@@ -1,3 +1,6 @@
 ### IntelliJ IDEA ###
 .idea
+.gradle
+gradle
+gradlew
 k8s/environments/secrets/secret.yaml
