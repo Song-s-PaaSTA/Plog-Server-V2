@@ -1,3 +1,5 @@
 ### IntelliJ IDEA ###
 .idea
 k8s/environments/secrets/secret.yaml
+k8s/environments/configmaps/configmap.yaml
+k8s/applications/apigateway/ingress/ingress.yaml
