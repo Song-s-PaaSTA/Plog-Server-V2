@@ -21,14 +21,6 @@ configurations {
 
 repositories {
 	mavenCentral()
-}
-
-ext {
-	set('springCloudVersion', "2023.0.3")
-}
-
-repositories {
-	mavenCentral()
 	maven {
 		url = uri("https://maven.pkg.github.com/Song-s-PaaSTA/plog-maven-repo")
 		credentials {
@@ -36,6 +28,10 @@ repositories {
 			password = project.findProperty("MAVEN_PASSWORD") ?: ""
 		}
 	}
+}
+
+ext {
+	set('springCloudVersion', "2023.0.3")
 }
 
 dependencies {

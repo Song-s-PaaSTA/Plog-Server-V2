@@ -2,7 +2,6 @@ package com.songspasssta.apigatewayservice.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.songspasssta.apigatewayservice.auth.TokenProvider;
-import com.songspasssta.common.exception.ExceptionResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
@@ -18,12 +17,11 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
-import static com.songspasssta.common.auth.GatewayConstants.GATEWAY_AUTH_HEADER;
-
 @Component
 @Slf4j
 public class AuthorizationHeaderFilter extends AbstractGatewayFilterFactory<AuthorizationHeaderFilter.Config> {
 
+    public static final String GATEWAY_AUTH_HEADER = "X-GATEWAY-AUTH-HEADER";
     private final TokenProvider tokenProvider;
 
     @Autowired
@@ -46,7 +44,7 @@ public class AuthorizationHeaderFilter extends AbstractGatewayFilterFactory<Auth
 
             final String authorizationHeader = headers.get(HttpHeaders.AUTHORIZATION).get(0);
 
-            final String accessToken = authorizationHeader.replace("Bearer", "");
+            final String accessToken = authorizationHeader.replace("Bearer ", "");
 
             if (!tokenProvider.validToken(accessToken)) {
                 return onError(exchange, "Invalid access token", HttpStatus.UNAUTHORIZED);
@@ -70,13 +68,13 @@ public class AuthorizationHeaderFilter extends AbstractGatewayFilterFactory<Auth
         response.setStatusCode(httpStatus);
         response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
 
-        final ExceptionResponse errorResponse = new ExceptionResponse(401, "인증되지 않은 유저입니다.");
+        final String body = "{\"code\":401,\"message\":\"인증되지 않은 유저입니다.\"}";
 
         final ObjectMapper objectMapper = new ObjectMapper();
         final DataBufferFactory dataBufferFactory = response.bufferFactory();
 
         try {
-            final byte[] jsonBytes = objectMapper.writeValueAsBytes(errorResponse);
+            final byte[] jsonBytes = objectMapper.writeValueAsBytes(body);
             final DataBuffer dataBuffer = dataBufferFactory.wrap(jsonBytes);
 
             return response.writeWith(Mono.just(dataBuffer));
