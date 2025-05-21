@@ -1,7 +1,8 @@
 plugins {
-	id 'java'
+	id 'java-library' // include java plugin
 	id 'org.springframework.boot' version '3.3.3'
 	id 'io.spring.dependency-management' version '1.1.6'
+	id 'maven-publish'
 }
 
 group = 'com.songspasssta'
@@ -30,7 +31,8 @@ ext {
 
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter'
-	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	api 'org.springframework.boot:spring-boot-starter-data-jpa'
+	compileOnly 'jakarta.persistence:jakarta.persistence-api'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	compileOnly 'org.projectlombok:lombok'
@@ -43,6 +45,27 @@ dependencies {
 	annotationProcessor "com.querydsl:querydsl-apt:${querydslVersion}:jakarta"
 	annotationProcessor "jakarta.annotation:jakarta.annotation-api"
 	annotationProcessor "jakarta.persistence:jakarta.persistence-api"
+}
+
+publishing {
+	publications {
+		mavenJava(MavenPublication) {
+			from components.java
+			groupId = 'com.songspasssta'
+			artifactId = 'common'
+			version = '0.0.1-SNAPSHOT'
+		}
+	}
+	repositories {
+		maven {
+			name = "GitHubPackages"
+			url = uri("https://maven.pkg.github.com/Song-s-PaaSTA/plog-maven-repo")
+			credentials {
+				username = project.findProperty("MAVEN_USER") ?: ""
+				password = project.findProperty("MAVEN_PASSWORD") ?: ""
+			}
+		}
+	}
 }
 
 dependencyManagement {

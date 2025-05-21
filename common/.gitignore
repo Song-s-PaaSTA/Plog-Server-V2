@@ -6,6 +6,7 @@ build/libs
 build/reports
 build/test-results
 build/tmp
+build/publications
 build/resolvedMainClassName
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
